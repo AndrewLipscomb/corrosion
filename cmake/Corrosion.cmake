@@ -1561,6 +1561,7 @@ function(corrosion_add_cxxbridge cxx_target)
             message(FATAL_ERROR "${_arg_CRATE} does not produce a static library. This is required for cxx to link correctly")
         endif()
         target_link_libraries(${cxx_target} PRIVATE ${_arg_CRATE}-static)
+        target_link_libraries(${_arg_CRATE}-static INTERFACE ${cxx_target})
     endif()
 
     file(MAKE_DIRECTORY "${generated_dir}/include/rust")
@@ -1610,28 +1611,28 @@ function(corrosion_add_cxxbridge cxx_target)
         )
     endforeach()
 
-    set(cxx_link_target ${cxx_target}-link)
-    if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
-        # https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html#genex:LINK_GROUP appears in 3.24
-        # Produce an interface library target that hides the linking circularity we might need
-        add_library(${cxx_link_target} INTERFACE)
-        target_link_libraries(${cxx_link_target}
-            INTERFACE
-            $<LINK_GROUP:RESCAN,${cxx_target},${_arg_CRATE}-static>
-        )
-    else()
-        # Else produce a static library alias - linking will be an exercise for the invoker
+    # set(cxx_link_target ${cxx_target}-link)
+    # if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
+    #     # https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html#genex:LINK_GROUP appears in 3.24
+    #     # Produce an interface library target that hides the linking circularity we might need
+    #     add_library(${cxx_link_target} INTERFACE)
+    #     target_link_libraries(${cxx_link_target}
+    #         INTERFACE
+    #         $<LINK_GROUP:RESCAN,${cxx_target},${_arg_CRATE}-static>
+    #     )
+    # else()
+    #     # Else produce a static library alias - linking will be an exercise for the invoker
 
-        # Don't print the statement if we are using LLD. Potentially the other options in https://cmake.org/cmake/help/latest/variable/CMAKE_LINKER_TYPE.html
-        # will also recursively link without explicit instructions - but I've not tested that personally
-        if(NOT CMAKE_LINKER_TYPE STREQUAL LLD)
-            message(WARNING "CMake version does not support LINK_GROUP statements. "
-                "Linking ${cxx_link_target} will require manual intervention to resolve the circular linking nature. "
-                "See https://cxx.rs/build/other.html#linking-the-c-and-rust-together"
-            )
-        endif()
-        add_library(${cxx_link_target} ALIAS ${cxx_target})
-    endif()
+    #     # Don't print the statement if we are using LLD. Potentially the other options in https://cmake.org/cmake/help/latest/variable/CMAKE_LINKER_TYPE.html
+    #     # will also recursively link without explicit instructions - but I've not tested that personally
+    #     if(NOT CMAKE_LINKER_TYPE STREQUAL LLD)
+    #         message(WARNING "CMake version does not support LINK_GROUP statements. "
+    #             "Linking ${cxx_link_target} will require manual intervention to resolve the circular linking nature. "
+    #             "See https://cxx.rs/build/other.html#linking-the-c-and-rust-together"
+    #         )
+    #     endif()
+    #     add_library(${cxx_link_target} ALIAS ${cxx_target})
+    # endif()
 
 endfunction()
 
